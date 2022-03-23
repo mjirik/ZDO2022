@@ -5,24 +5,27 @@ from skimage.draw import polygon
 import glob
 import numpy as np
 from pathlib import Path
-import zdo2021.main
+import zdo2022.main
 import sklearn.metrics
 
 # cd ZDO2021
 # python -m pytest
 
 def test_run_random():
-    vdd = zdo2021.main.VarroaDetector()
+    vdd = zdo2022.main.InstrumentTracker()
 
-    # Nastavte si v operačním systém proměnnou prostředí 'VARROA_DATA_PATH' s cestou k datasetu.
+    # Nastavte si v operačním systém proměnnou prostředí 'ZDO_DATA_PATH' s cestou k datasetu.
     # Pokud není nastavena, využívá se testovací dataset tests/test_dataset
-    dataset_path = os.getenv('VARROA_DATA_PATH_', default=Path(__file__).parent / 'test_dataset/')
+    dataset_path = os.getenv('ZDO_PATH_', default=Path(__file__).parent / 'test_dataset/')
     # dataset_path = Path(r"H:\biology\orig\zdo_varroa_detection_coco_001")
 
     # print(f'dataset_path = {dataset_path}')
-    files = glob.glob(f'{dataset_path}/images/*.jpg')
-    cislo_obrazku = np.random.randint(0, len(files))
-    filename = files[cislo_obrazku]
+    types = ('*.MP4', '*.mkv')  # the tuple of file types
+    files = []
+    for file_type in types:
+        files.extend(glob.glob(f'{dataset_path}/*.{file_type}'))
+    cislo_souboru = np.random.randint(0, len(files))
+    filename = files[cislo_souboru]
 
     im = skimage.io.imread(filename)
     imgs = np.expand_dims(im, axis=0)
@@ -40,7 +43,7 @@ def test_run_random():
         plt.show()
 
 def test_run_all():
-    vdd = zdo2021.main.VarroaDetector()
+    vdd = zdo2022.main.InstrumentTracker()
 
     # Nastavte si v operačním systém proměnnou prostředí 'VARROA_DATA_PATH' s cestou k datasetu.
     # Pokud není nastavena, využívá se testovací dataset tests/test_dataset
@@ -48,7 +51,10 @@ def test_run_all():
     # dataset_path = Path(r"H:\biology\orig\zdo_varroa_detection_coco_001")
 
     # print(f'dataset_path = {dataset_path}')
-    files = glob.glob(f'{dataset_path}/images/*.jpg')
+    types = ('*.MP4', '*.mkv')  # the tuple of file types
+    files = []
+    for file_type in types:
+        files.extend(glob.glob(f'{dataset_path}/*.{file_type}'))
     f1s = []
     for filename in files:
         im = skimage.io.imread(filename)
