@@ -3,4 +3,5 @@ scipy
 scikit-image
 scikit-learn
 matplotlib
+pandas
 lxml
