@@ -11,12 +11,15 @@ import pandas as pd
 from pathlib import Path
 import lxml
 from lxml import etree
+import argparse
+import sys
+import logging
 
-import zdo2022.main
 # cd ZDO2022
 # python -m pytest
 
 def test_run_random():
+    import zdo2022.main
     vdd = zdo2022.main.InstrumentTracker()
 
     # Nastavte si v operačním systém proměnnou prostředí 'ZDO_DATA_PATH' s cestou k datasetu.
@@ -33,7 +36,7 @@ def test_run_random():
     cislo_souboru = np.random.randint(0, len(files))
     filename = files[cislo_souboru]
 
-    prediction = vdd.predict(filename)
+    prediction = vdd.predict(str(filename))
 
     # im = skimage.io.imread(filename)
     # imgs = np.expand_dims(im, axis=0)
@@ -52,6 +55,7 @@ def test_run_random():
         plt.show()
 
 def test_run_all():
+    import zdo2022.main
     vdd = zdo2022.main.InstrumentTracker()
 
     # Nastavte si v operačním systém proměnnou prostředí 'ZDO_DATA_PATH' s cestou k datasetu.
@@ -67,13 +71,14 @@ def test_run_all():
 
     f1s = []
     for filename in files:
-        prediction = vdd.predict(filename)
+        prediction = vdd.predict(str(filename))
 
         df_eval = check_one_prediction(filename, prediction)
         f1s.append(df_eval)
 
     df = pd.concat(f1s)
-    print(df)
+    # print(df)
+    return df
     # assert f1 > 0.55
 
 
@@ -89,6 +94,9 @@ def check_one_prediction(filename:Path, prediction:dict) -> pd.DataFrame:
     # df_prediction.frame_id = pd.to_numeric(df_prediction.frame_id)
     # df_prediction.object_id = pd.to_numeric(df_prediction.object_id)
 
+    print(df_prediction)
+
+    print(df_gt)
     df_eval = dist_eval(df_gt, df_prediction)
 
     return df_eval
@@ -166,6 +174,8 @@ def interpolate_px(df_algorithm:pd.DataFrame, n_frames:Optional[int]=None, n_obj
 
 def dist_eval(df_gt, df_algorithm):
     df_anns = df_gt
+    df_anns.filename = df_anns.filename.map(lambda pth: str(Path(pth).name))
+    df_algorithm.filename = df_algorithm.filename.map(lambda pth: str(Path(pth).name))
     fns = []
     dst_max = []
     dst_std = []
@@ -180,6 +190,8 @@ def dist_eval(df_gt, df_algorithm):
         object_i = 0
         object_j = 0
 
+        import ipdb
+        ipdb.set_trace()
         df_an_s_fn = interpolate_px(df_anns[(df_anns.filename == fn)], n_frames=n_frames, n_objects=n_objects)
         df_al_s_fn = interpolate_px(df_algorithm[(df_algorithm.filename == fn)], n_frames=n_frames, n_objects=n_objects)
         for object_i in range(n_objects):
@@ -218,3 +230,16 @@ def dist_eval(df_gt, df_algorithm):
 
     df = pd.DataFrame(dict(filename=fns, object_id=object_ids, dist_max=dst_max, dist_std=dst_std, dist_mean=dst_mean))
     return df
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("path", help="display a square of a given number",
+                        type=str)
+    args = parser.parse_args()
+    sys.path.insert(0, str(Path(args.path).absolute()))
+
+    import zdo2022.main
+
+    df = test_run_all()
+    print(df)
+    # df.to_csv()
