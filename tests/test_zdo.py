@@ -80,7 +80,7 @@ def test_run_all():
             f1s.append(df_eval)
 
     df = pd.concat(f1s)
-    if show():
+    if show:
         plt.show()
     # print(df)
     return df
@@ -284,8 +284,8 @@ def dist_eval(df_gt, df_algorithm, interpolate_algorithm=False):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("path", help="display a square of a given number",
-                        type=str)
+    parser.add_argument("--path", help="path to the root of semestral work git repository",
+                        type=str, default=".")
     parser.add_argument("--dataset-path", help="path to dataset",
                         default=str(os.getenv('ZDO_PATH_', default=Path(__file__).parent / 'test_dataset/')),
                         type=str)
