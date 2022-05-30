@@ -25,6 +25,7 @@ import logging
 dataset_path = Path(os.getenv('ZDO_PATH_', default=Path(__file__).parent / 'test_dataset/'))
 # dataset_path = Path(r"H:\biology\orig\zdo_varroa_detection_coco_001")
 # dataset_path = Path(r"G:\Můj disk\data\biomedical\orig\pigleg_surgery\ZDO2022")
+show = False
 
 def test_run_random():
     import zdo2022.main
@@ -79,7 +80,8 @@ def test_run_all():
             f1s.append(df_eval)
 
     df = pd.concat(f1s)
-    plt.show()
+    if show():
+        plt.show()
     # print(df)
     return df
     # assert f1 > 0.55
@@ -124,7 +126,7 @@ def check_one_prediction(filename:Path, prediction:dict) -> pd.DataFrame:
     df_eval.to_csv(f"{name}_{filename.name}_eval.csv")
     dfall.to_csv(f"{name}_{filename.name}_all.csv")
     plt.figure()
-    sns.lineplot(data=dfall[dfall.object_id == 0], x="x_px", y="y_px", hue="ground_true")
+    sns.lineplot(data=dfall[dfall.object_id == 0], x="x_px", y="y_px", hue="ground_true", sort=False)
     plt.savefig(f"{name}_{filename.name}_trajectory.pdf")
 
     return df_eval
@@ -277,7 +279,7 @@ def dist_eval(df_gt, df_algorithm, interpolate_algorithm=False):
             object_ids.append(object_i)
             dst_median.append(dist_median)
 
-    df = pd.DataFrame(dict(filename=fns, object_id=object_ids, dist_max=dst_max, dist_std=dst_std, dist_mean=dst_mean))
+    df = pd.DataFrame(dict(filename=fns, object_id=object_ids, dist_max=dst_max, dist_std=dst_std, dist_mean=dst_mean, dist_median=dst_median))
     return df
 
 if __name__ == '__main__':
@@ -293,6 +295,7 @@ if __name__ == '__main__':
 
     import zdo2022.main
 
+    show = True
     df = test_run_all()
     print(df)
     # df.to_csv()
