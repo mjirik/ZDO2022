@@ -11,6 +11,8 @@ Miroslav Jiřík, Ivan Gruber a Jiří Vyskočil
 pip install -r requirements.txt
 ```
 
+
+
 Or install with conda
 ```shell
 conda create -n zdo python scikit-learn scikit-image opencv pytest lxml pandas

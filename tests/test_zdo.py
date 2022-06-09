@@ -15,6 +15,8 @@ from lxml import etree
 import argparse
 import sys
 import logging
+import cv2
+from tqdm import tqdm
 
 # cd ZDO2022
 # python -m pytest
@@ -60,6 +62,7 @@ def test_run_random():
 
 def test_run_all():
     import zdo2022.main
+    zdo_pth = Path(zdo2022.__file__).parent.parent
     vdd = zdo2022.main.InstrumentTracker()
 
 
@@ -74,10 +77,22 @@ def test_run_all():
         ann_pth = filename.with_suffix(".xml")
         if filename.exists() and ann_pth.exists():
             prediction = vdd.predict(str(filename))
+            # lpred = []
 
+            #
+            # for pred in prediction:
+            #     lpred.append(len(prediction[pred]))
+            #
+            # # print(f"len {pred}: {prediction[pred]}")
+            # print(f"{list(prediction.keys())} : {lpred}")
+            # if prediction["annotation_timestep"]
 
-            df_eval = check_one_prediction(filename, prediction)
+            df_eval, df_pred, df_gt = check_one_prediction(filename, prediction)
             f1s.append(df_eval)
+            fn = f"{zdo_pth.name}_{filename.name}_prediction.csv"
+            fn_out = f"{zdo_pth.name}_{filename.name}_prediction.avi"
+            df_prediction = pd.read_csv(fn)
+            make_video(filename, df_prediction, fn_out)
 
     df = pd.concat(f1s)
     if show:
@@ -86,9 +101,43 @@ def test_run_all():
     return df
     # assert f1 > 0.55
 
+def make_video(video_path:Path, df_prediction:pd.DataFrame, output_path:Path, scale=0.5):
+    # df_prediction = pd.read_csv(prediction_path)
+    step = 1  # read every 10th step
+
+    cap = cv2.VideoCapture(str(video_path))
+    frame_width = int(scale * cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    frame_height = int(scale * cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    import ipdb
+    out = cv2.VideoWriter(str(output_path), cv2.VideoWriter_fourcc('M', 'J', 'P', 'G'), fps, (frame_width, frame_height))
+    # frames = []
+    amount_of_frames = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+    print(f"amount_of_frames={amount_of_frames}")
+
+    for frame_number in range(0, int(amount_of_frames), step):
+        cap.set(cv2.CAP_PROP_POS_FRAMES, int(frame_number - 1))
+        res, frame = cap.read()
+        frame = cv2.resize(frame, (frame_width, frame_height))
+        # frames.append(frame)
+
+        for index, row in df_prediction[df_prediction["frame_id"] == frame_number].iterrows():
+            # cv2.circle(frame, (row["x_px", row["y_px"]))
+            color = [0, 0, 0]
+            if row["object_id"] < 3:
+                color[int(row["object_id"])] = 255
+            frame = cv2.circle(frame, (int(scale * row["x_px"]), int(scale * row["y_px"])), radius=30, color=(0, 0, 255), thickness=5)
+            # ipdb.set_trace()
+
+        out.write(frame)
+
+    cap.release()
+    out.release()
+    # df_prediction.to_csv(f"{name}_{video_path.name}_prediction.csv")
 
 def check_one_prediction(filename:Path, prediction:dict) -> pd.DataFrame:
     import zdo2022
+    print(f"zdo2022.__file__={zdo2022.__file__}")
     zdo_pth = Path(zdo2022.__file__).parent.parent
     name = zdo_pth.name
     ann_pth = filename.with_suffix(".xml")
@@ -129,7 +178,7 @@ def check_one_prediction(filename:Path, prediction:dict) -> pd.DataFrame:
     sns.lineplot(data=dfall[dfall.object_id == 0], x="x_px", y="y_px", hue="ground_true", sort=False)
     plt.savefig(f"{name}_{filename.name}_trajectory.pdf")
 
-    return df_eval
+    return df_eval, df_gt, df_prediction
 
 
 def xml_to_dict(pth:Path):
@@ -291,6 +340,7 @@ if __name__ == '__main__':
                         type=str)
     args = parser.parse_args()
     sys.path.insert(0, str(Path(args.path).absolute()))
+    sys.path.insert(0, str(Path(args.path).absolute() / "zdo2022"))
     dataset_path = Path(args.dataset_path)
 
     import zdo2022.main
@@ -298,4 +348,5 @@ if __name__ == '__main__':
     show = True
     df = test_run_all()
     print(df)
-    # df.to_csv()
+
+    # df.to_csv(f"{str(Path(args.path).name)}_eval.csv")
